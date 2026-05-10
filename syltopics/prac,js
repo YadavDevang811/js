@@ -1,0 +1,189 @@
+// ============================================================
+//  js-concepts.js
+//  Chhota, solid, repo mein daalne laayak.
+//  Har concept — theory (comment) + practical (code)
+// ============================================================
+
+
+// ─── 1. HOISTING ────────────────────────────────────────────
+// var declarations upar uth jaate hain, but value nahi.
+// let/const hoist hote hain par "temporal dead zone" mein rehte hain.
+
+console.log(hoisted);   // undefined  (var hoisted hua)
+// console.log(blocked); // ReferenceError (let ka TDZ)
+
+var hoisted = "I was hoisted";
+let blocked = "I was not accessible early";
+
+sayHi();  // Works! — function declarations fully hoist hoti hain
+function sayHi() { console.log("Hello from hoisted function!"); }
+
+const sayBye = () => console.log("Bye");
+// sayBye();  // Error if called before this line — arrow functions hoist nahi hote
+
+
+// ─── 2. TYPE COERCION ────────────────────────────────────────
+// JS silently types convert karta hai — ye bugs ka baap hai
+
+console.log(1 + "2");      // "12"  — number string ban gaya
+console.log("5" - 2);      // 3     — string number ban gaya
+console.log(true + 1);     // 2     — true = 1
+console.log([] + []);      // ""    — dono empty string
+console.log([] + {});      // "[object Object]"
+console.log(null + 1);     // 1
+console.log(undefined + 1);// NaN
+
+// Fix: hamesha === use karo
+console.log(0 == false);   // true  ← dangerous
+console.log(0 === false);  // false ← safe
+
+
+// ─── 3. SCOPE CHAIN ──────────────────────────────────────────
+// JS andar se bahar dhundta hai — inner → outer → global
+
+const globalVar = "global";
+
+function outer() {
+  const outerVar = "outer";
+
+  function inner() {
+    const innerVar = "inner";
+    // Teen teeno accessible hain yahan
+    console.log(innerVar, outerVar, globalVar);
+  }
+
+  inner();
+  // console.log(innerVar); // Error — inner ka scope bahar nahi aata
+}
+
+outer();
+
+
+// ─── 4. CLOSURE ──────────────────────────────────────────────
+// Function apne outer scope ko "yaad" rakhta hai even after return
+
+function makeMultiplier(factor) {
+  return (num) => num * factor;   // factor ko close kar liya
+}
+
+const double = makeMultiplier(2);
+const triple = makeMultiplier(3);
+
+console.log(double(5));  // 10
+console.log(triple(5));  // 15
+// factor ek baar set hua, hamesha ke liye remember
+
+
+// ─── 5. IIFE — Immediately Invoked Function Expression ───────
+// Define karo aur turant chalao — scope pollute nahi hota
+
+const result = (function () {
+  const secret = 42;   // Bahar accessible nahi
+  return secret * 2;
+})();
+
+console.log(result);  // 84
+// console.log(secret); // ReferenceError
+
+
+// ─── 6. CALL / APPLY / BIND ──────────────────────────────────
+// 'this' manually set karne ke teen tarike
+
+const person = { name: "Rohan" };
+
+function greet(city, country) {
+  return `${this.name} from ${city}, ${country}`;
+}
+
+console.log(greet.call(person, "Rajkot", "India"));         // args alag alag
+console.log(greet.apply(person, ["Rajkot", "India"]));      // args array mein
+const boundGreet = greet.bind(person, "Rajkot");            // naya function banata hai
+console.log(boundGreet("India"));
+
+
+// ─── 7. OPTIONAL CHAINING & NULLISH COALESCING ───────────────
+// Deeply nested data safely access karo — no more "Cannot read property of undefined"
+
+const user = {
+  profile: {
+    address: null
+  }
+};
+
+console.log(user?.profile?.address?.city);   // undefined (no crash)
+console.log(user?.settings?.theme);          // undefined (no crash)
+
+// ?? — sirf null/undefined pe fallback deta hai (0 aur "" pe nahi)
+const theme = user?.settings?.theme ?? "dark";
+console.log(theme);  // "dark"
+
+const score = 0 ?? 100;   // 0  — because 0 null/undefined nahi hai
+const score2 = 0 || 100;  // 100 — || falsy pe fallback deta hai (gotcha!)
+
+
+// ─── 8. DESTRUCTURING ────────────────────────────────────────
+// Arrays aur objects se values nikalo cleanly
+
+// Array destructuring
+const [first, second, ...remaining] = [10, 20, 30, 40, 50];
+console.log(first);      // 10
+console.log(remaining);  // [30, 40, 50]
+
+// Object destructuring + rename + default
+const { name: userName = "Guest", age = 18, city = "Unknown" } = { name: "Priya", age: 22 };
+console.log(userName, age, city);  // Priya 22 Unknown
+
+// Function param destructuring
+function display({ title, views = 0 }) {
+  console.log(`${title} — ${views} views`);
+}
+display({ title: "JS Closures", views: 1500 });
+
+
+// ─── 9. EVENT LOOP IN ONE SHOT ───────────────────────────────
+// Call Stack → Web APIs → Callback Queue → Microtask Queue
+
+console.log("1 — sync");
+
+setTimeout(() => console.log("2 — macro (setTimeout)"), 0);
+
+Promise.resolve().then(() => console.log("3 — micro (Promise)"));
+
+console.log("4 — sync");
+
+// Output order: 1 → 4 → 3 → 2
+// Microtasks (Promises) hamesha macrotasks (setTimeout) se pehle chalte hain
+
+
+// ─── 10. PURE FUNCTION + SIDE EFFECTS ────────────────────────
+// Pure: same input → same output, koi bahar ka change nahi
+
+// ❌ Impure — bahar ka array badal raha hai
+function impureAdd(arr, val) {
+  arr.push(val);   // mutation — side effect
+  return arr;
+}
+
+// ✅ Pure — original touch nahi hota
+function pureAdd(arr, val) {
+  return [...arr, val];
+}
+
+const original = [1, 2, 3];
+const newArr   = pureAdd(original, 4);
+
+console.log(original);  // [1, 2, 3] — safe
+console.log(newArr);    // [1, 2, 3, 4]
+
+
+// ─── BONUS: One-liners worth knowing ─────────────────────────
+
+const unique    = [...new Set([1, 2, 2, 3, 3])];           // [1,2,3]
+const flatten   = [[1,2],[3,4]].flat();                     // [1,2,3,4]
+const max       = Math.max(...[4, 7, 1, 9]);                // 9
+const deepCopy  = JSON.parse(JSON.stringify({ a: 1 }));     // simple deep clone
+const range     = [...Array(5).keys()];                     // [0,1,2,3,4]
+const truthy    = [0, "", null, 1, "hi", false].filter(Boolean); // [1, "hi"]
+const swap      = ((a, b) => [b, a])(1, 2);                // [2, 1]
+
+console.log({ unique, flatten, max, range, truthy, swap });
